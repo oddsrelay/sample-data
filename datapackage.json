@@ -1,0 +1,310 @@
+{
+  "profile": "data-package",
+  "name": "uk-bookmaker-prices-sample",
+  "title": "UK and Irish bookmaker prices: a sample snapshot",
+  "description": "One snapshot, taken 2026-10-11T20:16:34Z, of pre-match prices from UK and Irish bookmakers, from the OddsRelay API's raw board and standard matched board. Bookmakers only: no exchange prices.",
+  "homepage": "https://oddsrelay.io",
+  "created": "2026-10-11T20:16:34Z",
+  "keywords": [
+    "sports",
+    "odds",
+    "bookmakers",
+    "football",
+    "tennis",
+    "horse racing",
+    "uk",
+    "ireland"
+  ],
+  "licenses": [
+    {
+      "name": "CC-BY-4.0",
+      "title": "Creative Commons Attribution 4.0",
+      "path": "https://creativecommons.org/licenses/by/4.0/"
+    }
+  ],
+  "contributors": [
+    {
+      "title": "OddsRelay",
+      "path": "https://oddsrelay.io",
+      "role": "author"
+    }
+  ],
+  "sources": [
+    {
+      "title": "OddsRelay API",
+      "path": "https://oddsrelay.io/docs"
+    }
+  ],
+  "resources": [
+    {
+      "name": "bookmakers",
+      "path": "data/bookmakers.csv",
+      "profile": "tabular-data-resource",
+      "format": "csv",
+      "mediatype": "text/csv",
+      "encoding": "utf-8",
+      "description": "One row per bookmaker with at least one price in this sample.",
+      "schema": {
+        "fields": [
+          {
+            "name": "bookmaker_key",
+            "type": "string",
+            "description": "Short identifier of the bookmaker, the same one the API uses. Joins to the price tables.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "bookmaker_name",
+            "type": "string",
+            "description": "The bookmaker's name as it is displayed.",
+            "constraints": {
+              "required": true
+            }
+          }
+        ],
+        "primaryKey": [
+          "bookmaker_key"
+        ],
+        "foreignKeys": []
+      }
+    },
+    {
+      "name": "events",
+      "path": "data/events.csv",
+      "profile": "tabular-data-resource",
+      "format": "csv",
+      "mediatype": "text/csv",
+      "encoding": "utf-8",
+      "description": "One row per event in this sample. On the raw board one fixture can appear as two events when bookmakers name or time it differently: compare sides and start times before counting fixtures.",
+      "schema": {
+        "fields": [
+          {
+            "name": "event_id",
+            "type": "string",
+            "description": "Identifier of the event in the API. Use it to join these files; it is not meant as a permanent key.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "sport",
+            "type": "string",
+            "description": "The sport, for example soccer, tennis or horse_racing.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "sport_key",
+            "type": "string",
+            "description": "The competition's identifier, which starts with the sport.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "competition",
+            "type": "string",
+            "description": "The competition's name, or the sport's name where there is no competition."
+          },
+          {
+            "name": "commence_time",
+            "type": "datetime",
+            "description": "Scheduled start, in UTC."
+          },
+          {
+            "name": "home_team",
+            "type": "string",
+            "description": "The home side, or the first-named player. Empty for events without sides, such as races."
+          },
+          {
+            "name": "away_team",
+            "type": "string",
+            "description": "The away side, or the second-named player. Empty for events without sides."
+          },
+          {
+            "name": "event_name",
+            "type": "string",
+            "description": "The event's name where it does not split into two sides. Often empty."
+          },
+          {
+            "name": "course",
+            "type": "string",
+            "description": "Racing only: the racecourse, where the matched board names it. Otherwise empty."
+          }
+        ],
+        "primaryKey": [
+          "event_id"
+        ],
+        "foreignKeys": []
+      }
+    },
+    {
+      "name": "raw_prices",
+      "path": "data/raw_prices.csv",
+      "profile": "tabular-data-resource",
+      "format": "csv",
+      "mediatype": "text/csv",
+      "encoding": "utf-8",
+      "description": "One row per price on the raw board: one bookmaker, one event, one market, one outcome. Outcome names are each bookmaker's own.",
+      "schema": {
+        "fields": [
+          {
+            "name": "event_id",
+            "type": "string",
+            "description": "The event (events.csv).",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "bookmaker_key",
+            "type": "string",
+            "description": "The bookmaker (bookmakers.csv).",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "market",
+            "type": "string",
+            "description": "The market's key (DATA_DICTIONARY.md says what each one means).",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "outcome",
+            "type": "string",
+            "description": "The selection, worded as this bookmaker words it.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "price",
+            "type": "number",
+            "description": "Decimal price: what one unit staked returns if the outcome wins, stake included.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "last_update",
+            "type": "datetime",
+            "description": "When this bookmaker's prices on this market last changed, in UTC."
+          }
+        ],
+        "foreignKeys": [
+          {
+            "fields": "event_id",
+            "reference": {
+              "resource": "events",
+              "fields": "event_id"
+            }
+          },
+          {
+            "fields": "bookmaker_key",
+            "reference": {
+              "resource": "bookmakers",
+              "fields": "bookmaker_key"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "matched_prices",
+      "path": "data/matched_prices.csv",
+      "profile": "tabular-data-resource",
+      "format": "csv",
+      "mediatype": "text/csv",
+      "encoding": "utf-8",
+      "description": "One row per bookmaker price on the standard matched board, where every bookmaker's offer on the same outcome sits under one outcome name. Exchange prices are left out.",
+      "schema": {
+        "fields": [
+          {
+            "name": "event_id",
+            "type": "string",
+            "description": "The event (events.csv).",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "market",
+            "type": "string",
+            "description": "The market's key (DATA_DICTIONARY.md says what each one means).",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "outcome",
+            "type": "string",
+            "description": "The selection, named once for every bookmaker.",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "point",
+            "type": "number",
+            "description": "The line on a line market, for example 2.5 on totals. Empty on other markets."
+          },
+          {
+            "name": "bookmaker_key",
+            "type": "string",
+            "description": "The bookmaker (bookmakers.csv).",
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "price",
+            "type": "number",
+            "description": "Decimal price, as in raw_prices.csv.",
+            "constraints": {
+              "required": true
+            }
+          }
+        ],
+        "foreignKeys": [
+          {
+            "fields": "event_id",
+            "reference": {
+              "resource": "events",
+              "fields": "event_id"
+            }
+          },
+          {
+            "fields": "bookmaker_key",
+            "reference": {
+              "resource": "bookmakers",
+              "fields": "bookmaker_key"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "raw-board",
+      "path": "data/raw_board.json",
+      "profile": "data-resource",
+      "format": "json",
+      "mediatype": "application/json",
+      "encoding": "utf-8",
+      "description": "The sample's raw-board events in the API's own shape, bookmakers only: meta, then data, one object per event with each bookmaker's markets and outcomes."
+    },
+    {
+      "name": "standard-board",
+      "path": "data/standard_board.json",
+      "profile": "data-resource",
+      "format": "json",
+      "mediatype": "application/json",
+      "encoding": "utf-8",
+      "description": "The sample's events on the standard matched board in the API's own shape, back prices only: meta, then data, one object per event with its markets, outcomes and the bookmakers' prices for each outcome, highest first."
+    }
+  ]
+}
