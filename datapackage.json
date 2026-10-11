@@ -290,6 +290,7 @@
     },
     {
       "name": "raw-board",
+      "type": "json",
       "path": "data/raw_board.json",
       "profile": "data-resource",
       "format": "json",
@@ -299,6 +300,7 @@
     },
     {
       "name": "standard-board",
+      "type": "json",
       "path": "data/standard_board.json",
       "profile": "data-resource",
       "format": "json",

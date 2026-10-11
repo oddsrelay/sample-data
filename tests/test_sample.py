@@ -211,6 +211,8 @@ class Metadata(unittest.TestCase):
         self.assertEqual(PACKAGE["licenses"][0]["name"], "CC-BY-4.0")
         for res in PACKAGE["resources"]:
             self.assertTrue(os.path.exists(os.path.join(ROOT, res["path"])), res["path"])
+            if res["format"] == "json":  # else frictionless validate takes standard_board.json for a descriptor
+                self.assertEqual(res.get("type"), "json", res["path"])
 
 
 class Examples(unittest.TestCase):

@@ -412,7 +412,9 @@ def datapackage(taken_at: str) -> dict:
                           "format": "csv", "mediatype": "text/csv", "encoding": "utf-8", "description": about,
                           "schema": schema})
     for path, about in JSON_FILES.items():
-        resources.append({"name": path.split(".")[0].replace("_", "-"), "path": f"data/{path}",
+        # "type": "json" is frictionless's own resource type: without it, frictionless reads a JSON file under 1 MB
+        # whose top level has a "data" key (standard_board.json) as a resource descriptor and fails the package.
+        resources.append({"name": path.split(".")[0].replace("_", "-"), "path": f"data/{path}", "type": "json",
                           "profile": "data-resource", "format": "json", "mediatype": "application/json",
                           "encoding": "utf-8", "description": about})
     return {
