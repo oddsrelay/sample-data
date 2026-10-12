@@ -32,7 +32,6 @@ PER_SPORT = 15  # events kept per sport: those on the matched board first, then 
 RAW_MARKETS = "h2h,btts,outright_winner"
 STANDARD_MARKETS = "h2h,totals,btts,win"
 LEFT_OUT = ("betfair",)  # venues whose key holds one of these are left out, on top of every exchange
-MIN_MARKETS = 5  # a bookmaker needs this many complete result markets to get a row in the summary's margin table
 ATTRIBUTION = "OddsRelay (https://oddsrelay.io)"
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -262,9 +261,9 @@ def overround(prices: list[float]) -> float:
     return sum(1 / p for p in prices) - 1
 
 
-def result_margins(rows: list[dict], sport_by_event: dict) -> list[tuple[str, str, float]]:
-    """(sport, bookmaker, margin) for every complete result (h2h) market: one bookmaker, one event, as many outcomes
-    as that sport's result markets most often have, every price above 1."""
+def result_margins(rows: list[dict], sport_by_event: dict) -> list[tuple[str, str, str, float]]:
+    """(sport, event, bookmaker, margin) for every complete result (h2h) market: one bookmaker, one event, as many
+    outcomes as that sport's result markets most often have, every price above 1."""
     books = defaultdict(list)
     for r in rows:
         if r["market"] == "h2h":
@@ -273,8 +272,19 @@ def result_margins(rows: list[dict], sport_by_event: dict) -> list[tuple[str, st
     for (event, _), prices in books.items():
         size[sport_by_event[event]][len(prices)] += 1
     usual = {s: c.most_common(1)[0][0] for s, c in size.items()}
-    return [(sport_by_event[e], b, overround(p)) for (e, b), p in books.items()
+    return [(sport_by_event[e], e, b, overround(p)) for (e, b), p in books.items()
             if len(p) == usual[sport_by_event[e]] and len(p) >= 2 and all(x > 1 for x in p)]
+
+
+def every_event_margins(margins: list[tuple[str, str, str, float]], sport: str) -> tuple[int, dict]:
+    """(n, {bookmaker: margins}) on one sport's result market, n being the events with a complete market from anyone,
+    for the bookmakers with a complete market on all n: a consistent sample, so every mean averages the same events."""
+    by_book, events = defaultdict(list), set()
+    for s, event, book, m in margins:
+        if s == sport:
+            by_book[book].append(m)
+            events.add(event)
+    return len(events), {b: ms for b, ms in by_book.items() if len(ms) == len(events)}
 
 
 def pct(x: float) -> str:
@@ -296,11 +306,10 @@ def summary(s: dict) -> str:
     for e in events:
         sample[e["sport"]].append(len(books_per_event[e["event_id"]]))
     margins = result_margins(raw, sport_by_event)
-    by_sport, by_book = defaultdict(list), defaultdict(list)
-    for sport, book, m in margins:
+    by_sport = defaultdict(list)
+    for sport, _, _, m in margins:
         by_sport[sport].append(m)
-        if sport == "soccer":
-            by_book[book].append(m)
+    soccer_events, by_book = every_event_margins(margins, "soccer")
     spread = defaultdict(list)
     outcome_prices = defaultdict(list)
     for r in matched:
@@ -317,7 +326,10 @@ def summary(s: dict) -> str:
         "snapshot of UK and Irish bookmaker prices. It describes the prices at that moment only: prices change all "
         "the time, so it is not a forecast and not advice.",
         "",
-        f"- **Events covered:** those scheduled to start between {s['window'][0]} and {s['window'][1]} (UTC).",
+        "Every count here (events, bookmakers, markets, prices) describes this one snapshot file and nothing more. "
+        "It is not a measure of what the OddsRelay feed covers.",
+        "",
+        f"- **Start times:** events scheduled to start between {s['window'][0]} and {s['window'][1]} (UTC).",
         f"- **Boards:** the raw board (markets `{RAW_MARKETS.replace(',', '`, `')}`) and the standard matched board "
         f"(markets `{STANDARD_MARKETS.replace(',', '`, `')}`, bookmaker prices only), read between {s['read'][0]} "
         f"and {s['read'][1]} (UTC).",
@@ -327,19 +339,16 @@ def summary(s: dict) -> str:
         "",
         "## Events per sport",
         "",
-        "| Sport | Events in the window with a bookmaker price | Events in this sample | Bookmakers per sample event (median) |",
-        "|---|---:|---:|---:|",
+        "| Sport | Events in this sample | Bookmakers per event (median) |",
+        "|---|---:|---:|",
     ]
-    for sport in sorted(s["window_counts"], key=lambda x: (-s["window_counts"][x], x)):
-        n = sample.get(sport, [])
-        median = f"{statistics.median(n):g}" if n else "-"
-        out.append(f"| {sport.replace('_', ' ')} | {s['window_counts'][sport]:,} | {len(n):,} | {median} |")
+    for sport in sorted(sample, key=lambda x: (-len(sample[x]), x)):
+        n = sample[sport]
+        out.append(f"| {sport.replace('_', ' ')} | {len(n):,} | {statistics.median(n):g} |")
     out += [
         "",
-        "\"Events in the window\" counts every event the raw board priced on the markets above, from at least one "
-        "bookmaker (one fixture can appear as two events there); the sample keeps a few of them. The sample "
-        "favours events with more bookmakers, so its medians run higher than a typical event's, and the margins "
-        "below describe these events only.",
+        "One fixture can appear as two events on the raw board. The sample picks events with more bookmakers, so "
+        "these medians run higher than a typical event's would, and the margins below describe these events only.",
         "",
         "## Margin on the result market",
         "",
@@ -358,15 +367,15 @@ def summary(s: dict) -> str:
         "",
         "### Soccer, by bookmaker",
         "",
-        f"The mean margin on each bookmaker's complete soccer result markets in this sample, for bookmakers with "
-        f"at least {MIN_MARKETS} of them. Listed alphabetically.",
+        f"Each bookmaker's mean margin on the soccer result market, for the bookmakers that priced it completely on "
+        f"all {soccer_events} soccer events where this sample has a complete one, so every row averages the same "
+        "events. A bookmaker priced on only some of them is left out. Listed alphabetically.",
         "",
-        "| Bookmaker | Markets | Mean margin |",
-        "|---|---:|---:|",
+        "| Bookmaker | Mean margin |",
+        "|---|---:|",
     ]
     for book in sorted(by_book, key=lambda b: names[b].lower()):
-        if len(by_book[book]) >= MIN_MARKETS:
-            out.append(f"| {names[book]} | {len(by_book[book])} | {pct(statistics.mean(by_book[book]))} |")
+        out.append(f"| {names[book]} | {pct(statistics.mean(by_book[book]))} |")
     out += [
         "",
         "## Spread of prices on the matched board",
@@ -444,11 +453,12 @@ def kaggle(taken_at: str) -> dict:
         "title": "UK and Irish bookmaker prices: a sample snapshot",
         "subtitle": "One snapshot of pre-match prices from UK and Irish bookmakers",
         "description": (
-            f"One snapshot, taken {when(taken_at)}, of pre-match prices from UK and Irish bookmakers across the "
-            "sports the OddsRelay API carries: its raw board (each bookmaker's own markets and outcome names) and its "
-            "standard matched board (every bookmaker's price on the same outcome under one name).\n\n"
+            f"One snapshot, taken {when(taken_at)}, of pre-match prices from UK and Irish bookmakers, from the "
+            "OddsRelay API: its raw board (each bookmaker's own markets and outcome names) and its standard matched "
+            "board (every bookmaker's price on the same outcome under one name).\n\n"
             "Bookmakers only: every exchange, lay price and liquidity figure is left out. It is a sample: one moment, "
-            "a few events per sport, a few markets. It has no history and no closing prices.\n\n"
+            "a few events per sport, a few markets. It has no history and no closing prices. Every count in it "
+            "describes this snapshot only, not what the OddsRelay feed covers.\n\n"
             "Column meanings are in each file's description here and in DATA_DICTIONARY.md in the GitHub repository "
             "(https://github.com/oddsrelay/sample-data), which also holds the script that rebuilds it.\n\n"
             f"Licence: CC BY 4.0. Attribution: {ATTRIBUTION}.\n\n"
@@ -519,7 +529,6 @@ def main() -> None:
         if not cursor:
             break
 
-    window_counts = Counter(sport(e["sport_key"]) for e in raw.values() if e["bookmakers"])
     events_raw = pick(list(raw.values()), set(matched), sport, PER_SPORT)
     kept = {e["id"] for e in events_raw}
     events_matched = [matched[e["id"]] for e in events_raw if e["id"] in matched]
@@ -553,7 +562,6 @@ def main() -> None:
     with open(os.path.join(HERE, "summary.md"), "w", encoding="utf-8") as f:
         read = raw_times + [iso(board["meta"]["processed_at"])]
         f.write(summary({"taken_at": taken_at, "window": window, "read": (min(read), max(read)),
-                         "window_counts": window_counts,
                          "events": events, "raw_rows": rows_raw, "matched_rows": rows_matched,
                          "names": books, "counts": counts}))
     print(f"snapshot {taken_at}: {len(kept)} events, {counts['raw_prices']} raw and {counts['matched_prices']} "

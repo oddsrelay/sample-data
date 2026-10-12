@@ -28,7 +28,7 @@ configs:
 # UK and Irish bookmaker prices: a sample snapshot
 
 One snapshot of pre-match prices from UK and Irish bookmakers, taken from the [OddsRelay](https://oddsrelay.io)
-odds API, across the sports it carries. Two views of the same moment:
+odds API. Two views of the same moment:
 
 - **`raw_prices`**: the raw board, one row per price: each bookmaker's own markets, with outcomes named the way that
   bookmaker names them.
@@ -62,6 +62,8 @@ prices = pd.read_csv("data/raw_prices.csv").merge(pd.read_csv("data/events.csv")
 ## What it is not
 
 - **Not the whole feed.** It is a sample: a few events per sport, a few markets per event.
+- **Not a coverage figure.** Every count here (events, bookmakers, markets, prices), in `summary.md` and
+  in every table, describes this one snapshot file. None of it measures what the OddsRelay feed covers.
 - **Not a time series.** One snapshot, so no history, no closing prices and no results.
 - **Not exchange data.** Bookmakers only: every exchange is left out, with every lay price and liquidity figure, and
   so is every venue under the Betfair name. Links to bookmakers' pages are left out too.
@@ -76,9 +78,9 @@ these files. It can be run again with an API key to take a new snapshot.
 
 ## Current prices
 
-For current prices on every event and market the API carries, use the OddsRelay API:
-[sign up](https://app.oddsrelay.io/signup) and copy your key from the dashboard. Free gives you 50,000 tokens for 14
-days from sign-up, with no card, then no tokens until you choose a plan, on the same key.
+For current prices, use the OddsRelay API: [sign up](https://app.oddsrelay.io/signup) and copy your key
+from the dashboard. Free gives you 50,000 tokens for 14 days from sign-up, with no card, then no tokens until you
+choose a plan, on the same key.
 Docs: https://oddsrelay.io/docs
 
 ## Licence

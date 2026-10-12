@@ -29,6 +29,8 @@ The tables join on `event_id` and `bookmaker_key`.
 ## What it is not
 
 - **Not the whole feed.** It is a sample: a few events per sport, a few markets per event.
+- **Not a coverage figure.** Every count here (events, bookmakers, markets, prices), in `summary.md` and
+  everywhere else, describes this one snapshot file. None of it measures what the OddsRelay feed covers.
 - **Not a time series.** One snapshot, so no history, no closing prices and no results. Prices move all the time;
   these are the prices at one moment.
 - **Not exchange data.** Bookmakers only: every exchange is left out, with every lay price and liquidity figure, and
@@ -85,7 +87,7 @@ nothing to install. The key travels only in the `Authorization` header and is ne
 
 ## Current prices
 
-This sample is one moment. For current prices on every event and market the API carries, use the OddsRelay API:
+This sample is one moment. For current prices, use the OddsRelay API:
 [sign up](https://app.oddsrelay.io/signup) and copy your key from the dashboard. Free gives you 50,000 tokens for 14
 days from sign-up, with no card, then no tokens until you choose a plan, on the same key.
 

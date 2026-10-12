@@ -230,6 +230,21 @@ class Examples(unittest.TestCase):
         self.run_example("load_pandas.py")
 
 
+class Summary(unittest.TestCase):
+    def test_soccer_table_lists_bookmakers_on_every_event_only(self):
+        sport = {r["event_id"]: r["sport"] for r in read_csv("data/events.csv")[1]}
+        rows = [{**r, "price": float(r["price"])} for r in read_csv("data/raw_prices.csv")[1]]
+        names = {r["bookmaker_key"]: r["bookmaker_name"] for r in read_csv("data/bookmakers.csv")[1]}
+        _, books = snapshot.every_event_margins(snapshot.result_margins(rows, sport), "soccer")
+        table = text("summary.md").split("### Soccer, by bookmaker")[1].split("\n## ")[0]
+        self.assertEqual(set(re.findall(r"^\| (.+?) \| [\d.]+% \|$", table, re.M)), {names[b] for b in books})
+
+    def test_no_count_beyond_the_snapshot(self):
+        body = text("summary.md")
+        self.assertIn("It is not a measure of what the OddsRelay feed covers.", body)
+        self.assertNotIn("in the window", body)
+
+
 class Script(unittest.TestCase):
     BOOKS = {"book_a", "book_b"}
 
@@ -273,7 +288,21 @@ class Script(unittest.TestCase):
         rows = [{"event_id": "e1", "bookmaker_key": b, "market": "h2h", "price": p}
                 for b, ps in (("a", [2.0, 3.5, 4.0]), ("b", [2.0, 3.5, 4.0]), ("c", [2.0, 3.5])) for p in ps]
         margins = snapshot.result_margins(rows, {"e1": "soccer"})
-        self.assertEqual(sorted(b for _, b, _ in margins), ["a", "b"])
+        self.assertEqual(sorted(b for _, _, b, _ in margins), ["a", "b"])
+
+    def test_margin_table_keeps_bookmakers_on_every_event_only(self):
+        margins = [("soccer", "e1", "a", 0.05), ("soccer", "e2", "a", 0.07), ("soccer", "e1", "b", 0.02),
+                   ("tennis", "e3", "c", 0.04)]
+        self.assertEqual(snapshot.every_event_margins(margins, "soccer"), (2, {"a": [0.05, 0.07]}))
+        events = [{"event_id": e, "sport": "soccer"} for e in ("e1", "e2")]
+        rows = [{"event_id": e, "bookmaker_key": b, "market": "h2h", "price": p}
+                for e, b in (("e1", "a"), ("e2", "a"), ("e1", "b")) for p in (2.0, 3.5, 4.0)]
+        out = snapshot.summary({"taken_at": "2026-10-11T20:16:34Z", "window": ("x", "y"), "read": ("x", "y"),
+                                "events": events, "raw_rows": rows, "matched_rows": [],
+                                "names": {"a": "Book A", "b": "Book B"}, "counts": {}})
+        self.assertIn("| Book A |", out)
+        self.assertNotIn("| Book B |", out)
+        self.assertIn("not a measure of what the OddsRelay feed covers", out)
 
     def test_sport_of_takes_the_longest_sport(self):
         sports = {"soccer", "horse_racing", "american_football"}
