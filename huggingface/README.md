@@ -62,6 +62,8 @@ prices = pd.read_csv("data/raw_prices.csv").merge(pd.read_csv("data/events.csv")
 ## What it is not
 
 - **Not the whole feed.** It is a sample: a few events per sport, a few markets per event.
+  It was taken before the off, in the UK & Ireland only; the API itself also serves in-play prices, historical odds
+  with closing lines, and bookmakers in 20 more regions, none of which is in this file.
 - **Not a coverage figure.** Every count here (events, bookmakers, markets, prices), in `summary.md` and
   in every table, describes this one snapshot file. None of it measures what the OddsRelay feed covers.
 - **Not a time series.** One snapshot, so no history, no closing prices and no results.
