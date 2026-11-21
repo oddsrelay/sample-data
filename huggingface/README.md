@@ -66,7 +66,7 @@ prices = pd.read_csv("data/raw_prices.csv").merge(pd.read_csv("data/events.csv")
   with closing lines, and bookmakers in 20 more regions, none of which is in this file.
 - **Not a coverage figure.** Every count here (events, bookmakers, markets, prices), in `summary.md` and
   in every table, describes this one snapshot file. None of it measures what the OddsRelay feed covers.
-- **Not a time series.** One snapshot, so no history, no closing prices and no results.
+- **Not a time series.** One snapshot, so this dataset holds no history, no closing prices and no results. The API serves historical odds as their own product.
 - **Not exchange data.** Bookmakers only: every exchange is left out, with every lay price and liquidity figure, and
   so is every venue under the Betfair name. Links to bookmakers' pages are left out too.
 - **Not advice.** It is market data for building and analysis.
@@ -77,6 +77,10 @@ prices = pd.read_csv("data/raw_prices.csv").merge(pd.read_csv("data/events.csv")
 standard matched board once each, for events scheduled to start in the following 24 hours, kept bookmaker prices
 only, picked a few events per sport (those on the matched board first, then those with the most bookmakers) and wrote
 these files. It can be run again with an API key to take a new snapshot.
+
+## The feed today
+
+This snapshot is from 11 October 2026 and holds UK and Irish bookmakers only. The OddsRelay API has grown since: it serves raw bookmaker prices for the UK & Ireland and 20 more regions, in-play prices, and historical odds as their own product. The matched boards and exchange lay prices are for the UK & Ireland. What is served where: https://oddsrelay.io/coverage
 
 ## Current prices
 
